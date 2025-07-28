@@ -1,0 +1,19 @@
+{
+  "name": "outdoor-gear-rental",
+  "version": "1.0.0",
+  "description": "Gear rental management system for outdoor clubs",
+  "scripts": {
+    "dev": "concurrently \"npm run server:dev\" \"npm run client:dev\"",
+    "client:dev": "cd client && npm run dev",
+    "server:dev": "cd server && npm run dev",
+    "build": "cd client && npm run build",
+    "start": "cd server && npm start"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0"
+  },
+  "workspaces": [
+    "client",
+    "server"
+  ]
+}

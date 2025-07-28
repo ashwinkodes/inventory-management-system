@@ -1,0 +1,158 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  phone     String?
+  role      UserRole @default(MEMBER)
+  clubIds   String[] // Array of club IDs they belong to
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  requests Request[]
+
+  @@map("users")
+}
+
+model GearItem {
+  id            String       @id @default(cuid())
+  name          String
+  brand         String?
+  model         String?
+  category      GearCategory
+  description   String?
+  condition     Condition    @default(GOOD)
+  size          String?
+  weight        String?
+  imageUrl      String?
+  purchaseDate  DateTime?
+  purchasePrice Float?
+  clubId        String // Which club owns this gear
+  isActive      Boolean      @default(true)
+  notes         String? // Admin notes about maintenance, etc.
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  // Relations
+  requests RequestItem[]
+
+  @@map("gear_items")
+}
+
+model Request {
+  id          String        @id @default(cuid())
+  userId      String
+  status      RequestStatus @default(PENDING)
+  requestType MemberType    @default(MEMBER)
+
+  // Dates
+  startDate DateTime
+  endDate   DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Optional details
+  purpose    String? // What they're using it for
+  experience String? // Their experience level
+  notes      String? // Additional notes
+
+  // Admin fields
+  adminNotes String?
+  approvedBy String?
+  approvedAt DateTime?
+
+  // Relations
+  user  User          @relation(fields: [userId], references: [id])
+  items RequestItem[]
+
+  @@map("requests")
+}
+
+model RequestItem {
+  id        String @id @default(cuid())
+  requestId String
+  gearId    String
+  quantity  Int    @default(1)
+
+  // Status for individual items
+  status ItemStatus @default(PENDING)
+
+  // Check-in/out tracking
+  checkedOutAt DateTime?
+  checkedInAt  DateTime?
+  condition    Condition?
+  damageNotes  String?
+
+  // Relations
+  request Request  @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  gear    GearItem @relation(fields: [gearId], references: [id])
+
+  @@unique([requestId, gearId])
+  @@map("request_items")
+}
+
+// Enums
+enum UserRole {
+  ADMIN
+  MEMBER
+}
+
+enum GearCategory {
+  BACKPACK
+  SLEEPING_BAG
+  SLEEPING_PAD
+  TENT
+  COOKING
+  CLIMBING_HARNESS
+  CLIMBING_SHOES
+  ICE_AXE
+  CRAMPONS
+  HELMET
+  ROPE
+  CANOE_KAYAK
+  PADDLE
+  PFD
+  OTHER
+}
+
+enum Condition {
+  EXCELLENT
+  GOOD
+  FAIR
+  POOR
+  RETIRED
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  ACTIVE // Currently checked out
+  COMPLETED
+  OVERDUE
+}
+
+enum ItemStatus {
+  PENDING
+  APPROVED
+  CHECKED_OUT
+  CHECKED_IN
+  DAMAGED
+  LOST
+}
+
+enum MemberType {
+  MEMBER
+  NON_MEMBER
+}
