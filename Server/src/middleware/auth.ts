@@ -1,16 +1,26 @@
 // server/src/middleware/auth.ts
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
-import { PrismaClient } from '@prisma/client';
+import { SessionManager } from '../utils/sessionManager';
 
-const prisma = new PrismaClient();
+declare global {
+    namespace Express {
+        interface Request {
+            user?: {
+                id: string;
+                email: string;
+                role: string;
+                clubIds: string;
+            };
+        }
+    }
+}
 
 interface AuthRequest extends Request {
     user?: {
         id: string;
         email: string;
         role: string;
-        clubIds: string[];
+        clubIds: string;
     };
 }
 
@@ -19,36 +29,29 @@ export const authenticateToken = async (
     res: Response,
     next: NextFunction
 ) => {
+    // Try to get token from Authorization header or cookie
     const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
+    const headerToken = authHeader && authHeader.split(' ')[1];
+    const cookieToken = req.cookies?.sessionToken;
+    
+    const token = headerToken || cookieToken;
 
     if (!token) {
         return res.status(401).json({ error: 'Access token required' });
     }
 
     try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+        const user = await SessionManager.validateSession(token);
 
-        // Fetch fresh user data
-        const user = await prisma.user.findUnique({
-            where: { id: decoded.userId },
-            select: {
-                id: true,
-                email: true,
-                role: true,
-                clubIds: true,
-                isActive: true
-            }
-        });
-
-        if (!user || !user.isActive) {
-            return res.status(401).json({ error: 'User not found or inactive' });
+        if (!user) {
+            return res.status(401).json({ error: 'Invalid or expired session' });
         }
 
         req.user = user;
         next();
     } catch (error) {
-        return res.status(403).json({ error: 'Invalid or expired token' });
+        console.error('Session validation error:', error);
+        return res.status(403).json({ error: 'Authentication failed' });
     }
 };
 
@@ -79,8 +82,8 @@ export const requireClubAccess = (
         return next();
     }
 
-    // Members can only access their clubs
-    if (!clubId || !req.user.clubIds.includes(clubId)) {
+    // Members can only access their clubs (simplified for now)
+    if (!clubId || req.user.clubIds !== clubId) {
         return res.status(403).json({ error: 'Access denied for this club' });
     }
 

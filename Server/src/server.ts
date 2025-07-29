@@ -3,11 +3,12 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import { PrismaClient } from '@prisma/client';
 
 // Import routes
-import authRoutes from './middleware/auth';
+import authRoutes from './routes/auth';
 import gearRoutes from './routes/gear';
 import requestRoutes from './routes/requests';
 import userRoutes from './routes/users';
@@ -34,8 +35,12 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
+app.use(cookieParser());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
+
+// Serve uploaded files
+app.use('/uploads', express.static('uploads'));
 
 // Routes
 app.use('/api/auth', authRoutes);

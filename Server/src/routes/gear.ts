@@ -3,6 +3,8 @@ import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
 import { authenticateToken, requireAdmin } from '../middleware/auth';
+import { uploadGearImage, deleteUploadedFile, getFileUrl } from '../middleware/upload';
+import path from 'path';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -46,7 +48,7 @@ router.get('/', authenticateToken, async (req, res) => {
             where.clubId = clubId;
         } else if (req.user?.role !== 'ADMIN') {
             // Non-admins can only see gear from their clubs
-            where.clubId = { in: req.user?.clubIds || [] };
+            where.clubId = req.user?.clubIds || 'default-club';
         }
 
         // Search functionality
@@ -63,20 +65,26 @@ router.get('/', authenticateToken, async (req, res) => {
             include: {
                 requests: {
                     where: {
-                        status: { in: ['APPROVED', 'ACTIVE'] },
+                        status: { in: ['APPROVED', 'CHECKED_OUT'] },
                         ...(startDate && endDate ? {
-                            OR: [
-                                {
-                                    startDate: { lte: new Date(endDate as string) },
-                                    endDate: { gte: new Date(startDate as string) }
-                                }
-                            ]
+                            request: {
+                                OR: [
+                                    {
+                                        startDate: { lte: new Date(endDate as string) },
+                                        endDate: { gte: new Date(startDate as string) }
+                                    }
+                                ]
+                            }
                         } : {})
                     },
-                    select: {
-                        startDate: true,
-                        endDate: true,
-                        status: true
+                    include: {
+                        request: {
+                            select: {
+                                startDate: true,
+                                endDate: true,
+                                status: true
+                            }
+                        }
                     }
                 }
             },
@@ -96,7 +104,7 @@ router.get('/', authenticateToken, async (req, res) => {
             ...item,
             isAvailable: item.requests.length === 0,
             nextAvailable: item.requests.length > 0
-                ? item.requests.sort((a, b) => new Date(a.endDate).getTime() - new Date(b.endDate).getTime())[0].endDate
+                ? item.requests.sort((a: any, b: any) => new Date(a.request.endDate).getTime() - new Date(b.request.endDate).getTime())[0].request.endDate
                 : null
         }));
 
@@ -140,7 +148,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
         }
 
         // Check access permissions
-        if (req.user?.role !== 'ADMIN' && !req.user?.clubIds.includes(gear.clubId)) {
+        if (req.user?.role !== 'ADMIN' && req.user?.clubIds !== gear.clubId) {
             return res.status(403).json({ error: 'Access denied' });
         }
 
@@ -152,13 +160,26 @@ router.get('/:id', authenticateToken, async (req, res) => {
 });
 
 // POST /api/gear - Create new gear item (admin only)
-router.post('/', authenticateToken, requireAdmin, async (req, res) => {
+router.post('/', authenticateToken, requireAdmin, uploadGearImage.single('image'), async (req, res) => {
     try {
-        const validatedData = createGearSchema.parse(req.body);
+        // Parse form data - convert string numbers to actual numbers
+        const formData = { ...req.body };
+        if (formData.purchasePrice) {
+            formData.purchasePrice = parseFloat(formData.purchasePrice);
+        }
+        
+        const validatedData = createGearSchema.parse(formData);
+        
+        // Handle image upload
+        let imageUrl = null;
+        if (req.file) {
+            imageUrl = getFileUrl(req.file.filename);
+        }
 
         const gear = await prisma.gearItem.create({
             data: {
                 ...validatedData,
+                imageUrl,
                 purchaseDate: new Date()
             }
         });
@@ -174,13 +195,41 @@ router.post('/', authenticateToken, requireAdmin, async (req, res) => {
 });
 
 // PUT /api/gear/:id - Update gear item (admin only)
-router.put('/:id', authenticateToken, requireAdmin, async (req, res) => {
+router.put('/:id', authenticateToken, requireAdmin, uploadGearImage.single('image'), async (req, res) => {
     try {
-        const validatedData = createGearSchema.partial().parse(req.body);
+        // Parse form data - convert string numbers to actual numbers
+        const formData = { ...req.body };
+        if (formData.purchasePrice) {
+            formData.purchasePrice = parseFloat(formData.purchasePrice);
+        }
+        
+        const validatedData = createGearSchema.partial().parse(formData);
+        
+        // Get current gear to check for existing image
+        const currentGear = await prisma.gearItem.findUnique({
+            where: { id: req.params.id },
+            select: { imageUrl: true }
+        });
+        
+        if (!currentGear) {
+            return res.status(404).json({ error: 'Gear item not found' });
+        }
+        
+        let updateData: any = { ...validatedData };
+        
+        // Handle new image upload
+        if (req.file) {
+            // Delete old image if it exists
+            if (currentGear.imageUrl) {
+                const oldImagePath = path.join(process.cwd(), 'uploads', 'gear-images', path.basename(currentGear.imageUrl));
+                deleteUploadedFile(oldImagePath);
+            }
+            updateData.imageUrl = getFileUrl(req.file.filename);
+        }
 
         const gear = await prisma.gearItem.update({
             where: { id: req.params.id },
-            data: validatedData
+            data: updateData
         });
 
         res.json(gear);
@@ -196,10 +245,27 @@ router.put('/:id', authenticateToken, requireAdmin, async (req, res) => {
 // DELETE /api/gear/:id - Soft delete gear item (admin only)
 router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
     try {
+        // Get current gear to check for image
+        const currentGear = await prisma.gearItem.findUnique({
+            where: { id: req.params.id },
+            select: { imageUrl: true }
+        });
+        
+        if (!currentGear) {
+            return res.status(404).json({ error: 'Gear item not found' });
+        }
+
         await prisma.gearItem.update({
             where: { id: req.params.id },
             data: { isActive: false }
         });
+
+        // Optionally delete image file when gear is deactivated
+        // Uncomment the lines below if you want to delete images immediately
+        // if (currentGear.imageUrl) {
+        //     const imagePath = path.join(process.cwd(), 'uploads', 'gear-images', path.basename(currentGear.imageUrl));
+        //     deleteUploadedFile(imagePath);
+        // }
 
         res.json({ message: 'Gear item deactivated successfully' });
     } catch (error) {
@@ -216,7 +282,7 @@ router.get('/categories/stats', authenticateToken, async (req, res) => {
             where: {
                 isActive: true,
                 ...(req.user?.role !== 'ADMIN' ? {
-                    clubId: { in: req.user?.clubIds || [] }
+                    clubId: req.user?.clubIds || 'default-club'
                 } : {})
             },
             _count: {

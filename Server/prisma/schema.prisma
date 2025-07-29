@@ -4,23 +4,28 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String
-  phone     String?
-  role      UserRole @default(MEMBER)
-  clubIds   String[] // Array of club IDs they belong to
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String   @id @default(cuid())
+  email         String   @unique
+  password      String   // Added password field
+  name          String
+  phone         String?
+  role          String @default("MEMBER") // "ADMIN" or "MEMBER"
+  clubIds       String @default("default-club") // JSON string or comma-separated
+  isActive      Boolean  @default(true)
+  isApproved    Boolean  @default(false) // Admin approval required
+  approvedBy    String?  // Admin who approved the user
+  approvedAt    DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   // Relations
   requests Request[]
+  sessions Session[]
 
   @@map("users")
 }
@@ -30,9 +35,9 @@ model GearItem {
   name          String
   brand         String?
   model         String?
-  category      GearCategory
+  category      String // "BACKPACK", "TENT", etc.
   description   String?
-  condition     Condition    @default(GOOD)
+  condition     String @default("GOOD") // "EXCELLENT", "GOOD", "FAIR", "POOR"
   size          String?
   weight        String?
   imageUrl      String?
@@ -53,8 +58,8 @@ model GearItem {
 model Request {
   id          String        @id @default(cuid())
   userId      String
-  status      RequestStatus @default(PENDING)
-  requestType MemberType    @default(MEMBER)
+  status      String @default("PENDING") // "PENDING", "APPROVED", "REJECTED", etc.
+  requestType String @default("MEMBER") // "MEMBER" or "NON_MEMBER"
 
   // Dates
   startDate DateTime
@@ -86,12 +91,12 @@ model RequestItem {
   quantity  Int    @default(1)
 
   // Status for individual items
-  status ItemStatus @default(PENDING)
+  status String @default("PENDING") // "PENDING", "APPROVED", "CHECKED_OUT", etc.
 
   // Check-in/out tracking
   checkedOutAt DateTime?
   checkedInAt  DateTime?
-  condition    Condition?
+  condition    String? // "EXCELLENT", "GOOD", "FAIR", "POOR"
   damageNotes  String?
 
   // Relations
@@ -102,57 +107,19 @@ model RequestItem {
   @@map("request_items")
 }
 
-// Enums
-enum UserRole {
-  ADMIN
-  MEMBER
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
 }
 
-enum GearCategory {
-  BACKPACK
-  SLEEPING_BAG
-  SLEEPING_PAD
-  TENT
-  COOKING
-  CLIMBING_HARNESS
-  CLIMBING_SHOES
-  ICE_AXE
-  CRAMPONS
-  HELMET
-  ROPE
-  CANOE_KAYAK
-  PADDLE
-  PFD
-  OTHER
-}
-
-enum Condition {
-  EXCELLENT
-  GOOD
-  FAIR
-  POOR
-  RETIRED
-}
-
-enum RequestStatus {
-  PENDING
-  APPROVED
-  REJECTED
-  ACTIVE // Currently checked out
-  COMPLETED
-  OVERDUE
-}
-
-enum ItemStatus {
-  PENDING
-  APPROVED
-  CHECKED_OUT
-  CHECKED_IN
-  DAMAGED
-  LOST
-}
-
-enum MemberType {
-  MEMBER
-  NON_MEMBER
-}
+// Note: Using strings instead of enums for SQLite compatibility
+// Valid values documented in comments above each field
