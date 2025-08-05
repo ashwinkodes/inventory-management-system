@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { X, Upload } from 'lucide-react';
-import axios from 'axios';
+import api, { getImageUrl } from '../lib/axios';
 
 interface AddGearModalProps {
   onClose: () => void;
@@ -88,7 +88,7 @@ const AddGearModal = ({ onClose, onSuccess }: AddGearModalProps) => {
         formDataToSend.append('image', selectedFile);
       }
 
-      await axios.post('/gear', formDataToSend, {
+      await api.post('/gear', formDataToSend, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }

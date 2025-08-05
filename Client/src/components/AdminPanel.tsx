@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../lib/axios';
 
 const AdminPanel = () => {
   const [stats, setStats] = useState({
@@ -14,7 +14,7 @@ const AdminPanel = () => {
 
   const fetchStats = async () => {
     try {
-      const gearResponse = await axios.get('/gear');
+      const gearResponse = await api.get('/gear');
       const gear = gearResponse.data;
       
       setStats({

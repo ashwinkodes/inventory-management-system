@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
-import axios from 'axios';
+import api from '../lib/axios';
 
 interface User {
   id: string;
@@ -31,9 +31,6 @@ interface RegisterData {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Configure axios defaults
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
-axios.defaults.baseURL = API_URL;
-axios.defaults.withCredentials = true; // Include cookies in requests
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -46,7 +43,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const checkAuthStatus = async () => {
     try {
-      const response = await axios.get('/auth/me');
+      const response = await api.get('/auth/me');
       setUser(response.data.user);
     } catch (error) {
       // User is not authenticated
@@ -58,7 +55,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = async (email: string, password: string) => {
     try {
-      const response = await axios.post('/auth/login', { email, password });
+      const response = await api.post('/auth/login', { email, password });
       setUser(response.data.user);
       return { success: true, message: response.data.message };
     } catch (error: any) {
@@ -69,7 +66,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const register = async (userData: RegisterData) => {
     try {
-      const response = await axios.post('/auth/register', userData);
+      const response = await api.post('/auth/register', userData);
       // Don't set user since registration requires approval
       return { success: true, message: response.data.message };
     } catch (error: any) {
@@ -80,7 +77,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = async () => {
     try {
-      await axios.post('/auth/logout');
+      await api.post('/auth/logout');
     } catch (error) {
       console.error('Logout error:', error);
     } finally {

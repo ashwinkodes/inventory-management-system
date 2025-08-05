@@ -16,7 +16,8 @@ import {
   UserX,
   Users
 } from 'lucide-react';
-import axios from 'axios';
+import api from '../lib/axios';
+import EditUserModal from './EditUserModal';
 
 interface User {
   id: string;
@@ -69,7 +70,7 @@ const UserManagement = () => {
 
   const fetchUsers = async () => {
     try {
-      const response = await axios.get('/users');
+      const response = await api.get('/users');
       setUsers(response.data);
     } catch (error) {
       console.error('Error fetching users:', error);
@@ -138,7 +139,7 @@ const UserManagement = () => {
 
   const handleDeleteUser = async (userId: string) => {
     try {
-      await axios.delete(`/users/${userId}`);
+      await api.delete(`/users/${userId}`);
       setUsers(users.filter(user => user.id !== userId));
       setShowDeleteConfirm(null);
     } catch (error) {
@@ -163,7 +164,7 @@ const UserManagement = () => {
       setIsSubmitting(true);
 
       try {
-        const response = await axios.post('/users', formData);
+        const response = await api.post('/users', formData);
         setUsers([response.data, ...users]);
         setShowCreateModal(false);
         setFormData({ name: '', email: '', phone: '', role: 'MEMBER', clubId: '', password: '' });
@@ -426,6 +427,17 @@ const UserManagement = () => {
 
       {/* Modals */}
       {showCreateModal && <CreateUserModal />}
+
+      {editingUser && (
+        <EditUserModal
+          user={editingUser}
+          onClose={() => setEditingUser(null)}
+          onSuccess={() => {
+            setEditingUser(null);
+            fetchUsers();
+          }}
+        />
+      )}
 
       {/* Delete Confirmation */}
       {showDeleteConfirm && (

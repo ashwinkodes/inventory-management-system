@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Package, User } from 'lucide-react';
-import axios from 'axios';
+import api from '../lib/axios';
 
 interface RentalEvent {
   id: string;

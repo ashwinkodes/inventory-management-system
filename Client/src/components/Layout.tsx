@@ -10,7 +10,9 @@ import {
   LogOut,
   Menu,
   X,
-  UserCheck
+  UserCheck,
+  ShoppingCart,
+  ClipboardList
 } from 'lucide-react';
 
 interface LayoutProps {
@@ -29,10 +31,14 @@ const Layout = ({ children, currentView, setCurrentView }: LayoutProps) => {
 
   const navigation = [
     { id: 'catalog', name: 'Gear Catalog', icon: Package },
+    ...(!isAdmin ? [
+      { id: 'cart', name: 'Cart', icon: ShoppingCart }
+    ] : []),
     { id: 'requests', name: 'My Requests', icon: Calendar },
     ...(isAdmin ? [
       { id: 'calendar', name: 'Rental Calendar', icon: Calendar },
       { id: 'admin', name: 'Admin Panel', icon: Settings },
+      { id: 'admin-requests', name: 'Manage Requests', icon: ClipboardList },
       { id: 'users', name: 'User Management', icon: UsersIcon },
       { id: 'approvals', name: 'User Approvals', icon: UserCheck }
     ] : [])

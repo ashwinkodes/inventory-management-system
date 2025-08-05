@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { X, Upload } from 'lucide-react';
-import axios from 'axios';
+import api, { getImageUrl } from '../lib/axios';
 
 interface GearItem {
   id: string;
@@ -105,7 +105,7 @@ const EditGearModal = ({ gear, onClose, onSuccess }: EditGearModalProps) => {
         formDataToSend.append('image', selectedFile);
       }
 
-      await axios.put(`/gear/${gear.id}`, formDataToSend, {
+      await api.put(`/gear/${gear.id}`, formDataToSend, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
@@ -146,7 +146,7 @@ const EditGearModal = ({ gear, onClose, onSuccess }: EditGearModalProps) => {
                 Current Image
               </label>
               <img 
-                src={gear.imageUrl} 
+                src={getImageUrl(gear.imageUrl)} 
                 alt={gear.name} 
                 className="w-32 h-32 object-cover rounded-md border"
               />

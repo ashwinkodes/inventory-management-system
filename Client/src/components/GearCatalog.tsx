@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Search, Plus, Package, Edit, Trash2, Calendar, ShoppingCart, X } from 'lucide-react';
-import axios from 'axios';
+import api, { getImageUrl } from '../lib/axios';
 import AddGearModal from './AddGearModal';
 import EditGearModal from './EditGearModal';
-import CheckoutModal from './CheckoutModal';
 
 interface GearItem {
   id: string;
@@ -20,7 +19,13 @@ interface GearItem {
   clubId: string;
 }
 
-const GearCatalog = () => {
+interface GearCatalogProps {
+  cart?: string[];
+  onUpdateCart?: (newCart: string[]) => void;
+  onNavigateToCart?: () => void;
+}
+
+const GearCatalog = ({ cart = [], onUpdateCart, onNavigateToCart }: GearCatalogProps) => {
   const [gear, setGear] = useState<GearItem[]>([]);
   const [filteredGear, setFilteredGear] = useState<GearItem[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -28,11 +33,9 @@ const GearCatalog = () => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [showDateFilter, setShowDateFilter] = useState(false);
-  const [cart, setCart] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingGear, setEditingGear] = useState<GearItem | null>(null);
-  const [showCheckout, setShowCheckout] = useState(false);
   
   const { isAdmin } = useAuth();
 
@@ -65,7 +68,7 @@ const GearCatalog = () => {
 
   const fetchGear = async () => {
     try {
-      const response = await axios.get('/gear');
+      const response = await api.get('/gear');
       setGear(response.data);
     } catch (error) {
       console.error('Error fetching gear:', error);
@@ -100,13 +103,15 @@ const GearCatalog = () => {
   };
 
   const addToCart = (gearId: string) => {
-    if (!cart.includes(gearId)) {
-      setCart([...cart, gearId]);
+    if (!cart.includes(gearId) && onUpdateCart) {
+      onUpdateCart([...cart, gearId]);
     }
   };
 
   const removeFromCart = (gearId: string) => {
-    setCart(cart.filter(id => id !== gearId));
+    if (onUpdateCart) {
+      onUpdateCart(cart.filter(id => id !== gearId));
+    }
   };
 
   const isInCart = (gearId: string) => {
@@ -123,22 +128,6 @@ const GearCatalog = () => {
     return gear.filter(item => cart.includes(item.id));
   };
 
-  const handleCheckout = async (requestData: any) => {
-    try {
-      // Create the request with selected gear items
-      const response = await axios.post('/requests', {
-        ...requestData,
-        gearIds: cart
-      });
-      
-      // Clear cart on success
-      setCart([]);
-      alert('Request submitted successfully! You will be notified when it\'s approved.');
-    } catch (error: any) {
-      console.error('Error submitting request:', error);
-      alert(error.response?.data?.error || 'Failed to submit request');
-    }
-  };
 
   const handleDeleteGear = async (gearId: string) => {
     if (!confirm('Are you sure you want to delete this gear item?')) {
@@ -146,7 +135,7 @@ const GearCatalog = () => {
     }
 
     try {
-      await axios.delete(`/gear/${gearId}`);
+      await api.delete(`/gear/${gearId}`);
       setGear(gear.filter(item => item.id !== gearId));
     } catch (error) {
       console.error('Error deleting gear:', error);
@@ -174,7 +163,7 @@ const GearCatalog = () => {
     <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
       <div className="h-48 bg-gray-200 flex items-center justify-center relative">
         {item.imageUrl ? (
-          <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
+          <img src={getImageUrl(item.imageUrl)} alt={item.name} className="w-full h-full object-cover" />
         ) : (
           <Package className="w-16 h-16 text-gray-400" />
         )}
@@ -222,31 +211,59 @@ const GearCatalog = () => {
               Until {item.nextAvailable && new Date(item.nextAvailable).toLocaleDateString()}
             </span>
           )}
-          {!isAdmin && (
-            <button
-              onClick={() => isInCart(item.id) ? removeFromCart(item.id) : addToCart(item.id)}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center ${
-                item.isAvailable
-                  ? isInCart(item.id)
-                    ? 'bg-green-600 text-white hover:bg-green-700'
-                    : 'bg-blue-600 text-white hover:bg-blue-700'
-                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-              }`}
-              disabled={!item.isAvailable}
-            >
-              {isInCart(item.id) ? (
-                <>
-                  <ShoppingCart className="w-4 h-4 mr-1" />
-                  In Cart
-                </>
-              ) : (
-                <>
-                  <Plus className="w-4 h-4 mr-1" />
-                  Add to Cart
-                </>
-              )}
-            </button>
-          )}
+          <div className="flex gap-2">
+            {!isAdmin && (
+              <button
+                onClick={() => isInCart(item.id) ? removeFromCart(item.id) : addToCart(item.id)}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center ${
+                  item.isAvailable
+                    ? isInCart(item.id)
+                      ? 'bg-green-600 text-white hover:bg-green-700'
+                      : 'bg-blue-600 text-white hover:bg-blue-700'
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                }`}
+                disabled={!item.isAvailable}
+              >
+                {isInCart(item.id) ? (
+                  <>
+                    <ShoppingCart className="w-4 h-4 mr-1" />
+                    In Cart
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-4 h-4 mr-1" />
+                    Add to Cart
+                  </>
+                )}
+              </button>
+            )}
+            {isAdmin && (
+              <button
+                onClick={() => isInCart(item.id) ? removeFromCart(item.id) : addToCart(item.id)}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center ${
+                  item.isAvailable
+                    ? isInCart(item.id)
+                      ? 'bg-green-600 text-white hover:bg-green-700'
+                      : 'bg-orange-600 text-white hover:bg-orange-700'
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                }`}
+                disabled={!item.isAvailable}
+                title="Add to request (Admin)"
+              >
+                {isInCart(item.id) ? (
+                  <>
+                    <ShoppingCart className="w-4 h-4 mr-1" />
+                    In Request
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-4 h-4 mr-1" />
+                    Request
+                  </>
+                )}
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -268,22 +285,26 @@ const GearCatalog = () => {
           <h2 className="text-2xl font-bold text-gray-900">Gear Catalog</h2>
           <p className="text-gray-600">Browse and request outdoor gear for your adventures</p>
         </div>
-        {!isAdmin && cart.length > 0 && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <ShoppingCart className="w-5 h-5 text-blue-600 mr-2" />
-                <span className="text-blue-900 font-medium">{cart.length} item{cart.length !== 1 ? 's' : ''} in cart</span>
+        <div className="min-h-[60px] flex items-center">
+          {cart.length > 0 && (
+            <div className={`${isAdmin ? 'bg-orange-50 border-orange-200' : 'bg-blue-50 border-blue-200'} border rounded-lg p-4`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <ShoppingCart className={`w-5 h-5 ${isAdmin ? 'text-orange-600' : 'text-blue-600'} mr-2`} />
+                  <span className={`${isAdmin ? 'text-orange-900' : 'text-blue-900'} font-medium`}>
+                    {cart.length} item{cart.length !== 1 ? 's' : ''} {isAdmin ? 'to request' : 'in cart'}
+                  </span>
+                </div>
+                <button
+                  onClick={onNavigateToCart}
+                  className={`${isAdmin ? 'bg-orange-600 hover:bg-orange-700' : 'bg-blue-600 hover:bg-blue-700'} text-white px-4 py-2 rounded-md transition-colors text-sm`}
+                >
+                  {isAdmin ? 'Create Request' : 'View Cart'}
+                </button>
               </div>
-              <button
-                onClick={() => setShowCheckout(true)}
-                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors text-sm"
-              >
-                Checkout
-              </button>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Filters */}
@@ -406,14 +427,6 @@ const GearCatalog = () => {
         />
       )}
 
-      {showCheckout && (
-        <CheckoutModal
-          isOpen={showCheckout}
-          onClose={() => setShowCheckout(false)}
-          cartItems={getCartItems()}
-          onSubmit={handleCheckout}
-        />
-      )}
     </div>
   );
 };

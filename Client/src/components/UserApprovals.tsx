@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { CheckCircle, XCircle, Clock, User } from 'lucide-react';
-import axios from 'axios';
+import api from '../lib/axios';
 
 interface PendingUser {
   id: string;
@@ -22,7 +22,7 @@ const UserApprovals = () => {
 
   const fetchPendingUsers = async () => {
     try {
-      const response = await axios.get('/auth/pending-users');
+      const response = await api.get('/auth/pending-users');
       setPendingUsers(response.data);
     } catch (error) {
       console.error('Error fetching pending users:', error);
@@ -33,7 +33,7 @@ const UserApprovals = () => {
 
   const handleApproveUser = async (userId: string) => {
     try {
-      await axios.post(`/auth/approve-user/${userId}`);
+      await api.post(`/auth/approve-user/${userId}`);
       setPendingUsers(users => users.filter(u => u.id !== userId));
     } catch (error) {
       console.error('Error approving user:', error);
@@ -47,7 +47,7 @@ const UserApprovals = () => {
     }
 
     try {
-      await axios.post(`/auth/reject-user/${userId}`);
+      await api.post(`/auth/reject-user/${userId}`);
       setPendingUsers(users => users.filter(u => u.id !== userId));
     } catch (error) {
       console.error('Error rejecting user:', error);
