@@ -6,6 +6,7 @@ import MyRequests from '../components/MyRequests';
 import AdminPanel from '../components/AdminPanel';
 import UserManagement from '../components/UserManagement';
 import UserApprovals from '../components/UserApprovals';
+import RentalCalendar from '../components/RentalCalendar';
 
 const Dashboard = () => {
   const [currentView, setCurrentView] = useState('catalog');
@@ -17,6 +18,8 @@ const Dashboard = () => {
         return <GearCatalog />;
       case 'requests':
         return <MyRequests />;
+      case 'calendar':
+        return isAdmin ? <RentalCalendar /> : <GearCatalog />;
       case 'admin':
         return isAdmin ? <AdminPanel /> : <GearCatalog />;
       case 'users':

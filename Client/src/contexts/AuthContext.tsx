@@ -25,7 +25,7 @@ interface RegisterData {
   password: string;
   name: string;
   phone?: string;
-  clubIds?: string;
+  clubId: string;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);

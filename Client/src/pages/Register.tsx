@@ -9,7 +9,8 @@ const Register = () => {
     password: '',
     confirmPassword: '',
     name: '',
-    phone: ''
+    phone: '',
+    clubId: ''
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -20,12 +21,18 @@ const Register = () => {
   const { register } = useAuth();
   const navigate = useNavigate();
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
     });
   };
+
+  const clubs = [
+    { id: 'autc', name: 'Auckland University Tramping Club' },
+    { id: 'aurac', name: 'Auckland University Rock & Alpine Club' },
+    { id: 'aucc', name: 'Auckland University Canoe Club' }
+  ];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,6 +41,12 @@ const Register = () => {
     setSuccess('');
 
     // Validation
+    if (!formData.clubId) {
+      setError('Please select your club membership');
+      setIsLoading(false);
+      return;
+    }
+
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
       setIsLoading(false);
@@ -50,7 +63,8 @@ const Register = () => {
       email: formData.email,
       password: formData.password,
       name: formData.name,
-      phone: formData.phone || undefined
+      phone: formData.phone || undefined,
+      clubId: formData.clubId
     });
     
     if (result.success) {
@@ -152,6 +166,27 @@ const Register = () => {
                   onChange={handleChange}
                   className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 />
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="clubId" className="block text-sm font-medium text-gray-700">
+                Club Membership
+              </label>
+              <div className="mt-1">
+                <select
+                  id="clubId"
+                  name="clubId"
+                  required
+                  value={formData.clubId}
+                  onChange={handleChange}
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">Select your club</option>
+                  {clubs.map(club => (
+                    <option key={club.id} value={club.id}>{club.name}</option>
+                  ))}
+                </select>
               </div>
             </div>
 

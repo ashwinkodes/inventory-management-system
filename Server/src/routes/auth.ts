@@ -13,7 +13,7 @@ const registerSchema = z.object({
     email: z.string().email(),
     name: z.string().min(1),
     phone: z.string().optional(),
-    clubIds: z.string().default('default-club')
+    clubId: z.string().min(1)
 });
 
 const loginSchema = z.object({
@@ -47,7 +47,10 @@ router.post('/register', async (req, res) => {
         // Create user (pending approval)
         const user = await prisma.user.create({
             data: {
-                ...validatedData,
+                email: validatedData.email,
+                name: validatedData.name,
+                phone: validatedData.phone,
+                clubIds: validatedData.clubId, // Store club ID in clubIds field
                 password: hashedPassword,
                 isApproved: false // Requires admin approval
             },

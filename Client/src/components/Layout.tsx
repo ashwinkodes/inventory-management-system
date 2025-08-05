@@ -31,6 +31,7 @@ const Layout = ({ children, currentView, setCurrentView }: LayoutProps) => {
     { id: 'catalog', name: 'Gear Catalog', icon: Package },
     { id: 'requests', name: 'My Requests', icon: Calendar },
     ...(isAdmin ? [
+      { id: 'calendar', name: 'Rental Calendar', icon: Calendar },
       { id: 'admin', name: 'Admin Panel', icon: Settings },
       { id: 'users', name: 'User Management', icon: UsersIcon },
       { id: 'approvals', name: 'User Approvals', icon: UserCheck }

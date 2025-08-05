@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Search, Plus, Package, Edit, Trash2 } from 'lucide-react';
+import { Search, Plus, Package, Edit, Trash2, Calendar, ShoppingCart, X } from 'lucide-react';
 import axios from 'axios';
 import AddGearModal from './AddGearModal';
 import EditGearModal from './EditGearModal';
+import CheckoutModal from './CheckoutModal';
 
 interface GearItem {
   id: string;
@@ -24,9 +25,14 @@ const GearCatalog = () => {
   const [filteredGear, setFilteredGear] = useState<GearItem[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [showDateFilter, setShowDateFilter] = useState(false);
+  const [cart, setCart] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingGear, setEditingGear] = useState<GearItem | null>(null);
+  const [showCheckout, setShowCheckout] = useState(false);
   
   const { isAdmin } = useAuth();
 
@@ -55,7 +61,7 @@ const GearCatalog = () => {
 
   useEffect(() => {
     filterGear();
-  }, [gear, searchTerm, selectedCategory]);
+  }, [gear, searchTerm, selectedCategory, startDate, endDate]);
 
   const fetchGear = async () => {
     try {
@@ -82,7 +88,56 @@ const GearCatalog = () => {
       filtered = filtered.filter(item => item.category === selectedCategory);
     }
 
+    // Date-based filtering - for now, show all gear as available
+    // In a real implementation, this would check against rental requests
+    if (startDate && endDate) {
+      // Filter out items that are not available during the selected date range
+      // This is a simplified implementation - in reality, you'd check against the Request table
+      filtered = filtered.filter(item => item.isAvailable);
+    }
+
     setFilteredGear(filtered);
+  };
+
+  const addToCart = (gearId: string) => {
+    if (!cart.includes(gearId)) {
+      setCart([...cart, gearId]);
+    }
+  };
+
+  const removeFromCart = (gearId: string) => {
+    setCart(cart.filter(id => id !== gearId));
+  };
+
+  const isInCart = (gearId: string) => {
+    return cart.includes(gearId);
+  };
+
+  const clearDateFilter = () => {
+    setStartDate('');
+    setEndDate('');
+    setShowDateFilter(false);
+  };
+
+  const getCartItems = () => {
+    return gear.filter(item => cart.includes(item.id));
+  };
+
+  const handleCheckout = async (requestData: any) => {
+    try {
+      // Create the request with selected gear items
+      const response = await axios.post('/requests', {
+        ...requestData,
+        gearIds: cart
+      });
+      
+      // Clear cart on success
+      setCart([]);
+      alert('Request submitted successfully! You will be notified when it\'s approved.');
+    } catch (error: any) {
+      console.error('Error submitting request:', error);
+      alert(error.response?.data?.error || 'Failed to submit request');
+    }
   };
 
   const handleDeleteGear = async (gearId: string) => {
@@ -167,16 +222,31 @@ const GearCatalog = () => {
               Until {item.nextAvailable && new Date(item.nextAvailable).toLocaleDateString()}
             </span>
           )}
-          <button
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-              item.isAvailable
-                ? 'bg-blue-600 text-white hover:bg-blue-700'
-                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-            }`}
-            disabled={!item.isAvailable}
-          >
-            {item.isAvailable ? 'Request' : 'Unavailable'}
-          </button>
+          {!isAdmin && (
+            <button
+              onClick={() => isInCart(item.id) ? removeFromCart(item.id) : addToCart(item.id)}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center ${
+                item.isAvailable
+                  ? isInCart(item.id)
+                    ? 'bg-green-600 text-white hover:bg-green-700'
+                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              }`}
+              disabled={!item.isAvailable}
+            >
+              {isInCart(item.id) ? (
+                <>
+                  <ShoppingCart className="w-4 h-4 mr-1" />
+                  In Cart
+                </>
+              ) : (
+                <>
+                  <Plus className="w-4 h-4 mr-1" />
+                  Add to Cart
+                </>
+              )}
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -192,34 +262,111 @@ const GearCatalog = () => {
 
   return (
     <div>
-      <div className="mb-6 flex flex-col sm:flex-row gap-4">
-        <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-          <input
-            type="text"
-            placeholder="Search gear..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
+      {/* Header */}
+      <div className="mb-6 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Gear Catalog</h2>
+          <p className="text-gray-600">Browse and request outdoor gear for your adventures</p>
         </div>
-        <select
-          value={selectedCategory}
-          onChange={(e) => setSelectedCategory(e.target.value)}
-          className="px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-        >
-          {categories.map(cat => (
-            <option key={cat.value} value={cat.value}>{cat.label}</option>
-          ))}
-        </select>
-        {isAdmin && (
-          <button 
-            onClick={() => setShowAddModal(true)}
-            className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors flex items-center"
+        {!isAdmin && cart.length > 0 && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <ShoppingCart className="w-5 h-5 text-blue-600 mr-2" />
+                <span className="text-blue-900 font-medium">{cart.length} item{cart.length !== 1 ? 's' : ''} in cart</span>
+              </div>
+              <button
+                onClick={() => setShowCheckout(true)}
+                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors text-sm"
+              >
+                Checkout
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Filters */}
+      <div className="mb-6 space-y-4">
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <input
+              type="text"
+              placeholder="Search gear..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+          <select
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
-            <Plus className="w-4 h-4 mr-2" />
-            Add Gear
-          </button>
+            {categories.map(cat => (
+              <option key={cat.value} value={cat.value}>{cat.label}</option>
+            ))}
+          </select>
+          
+          {!isAdmin && (
+            <button
+              onClick={() => setShowDateFilter(!showDateFilter)}
+              className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors flex items-center"
+            >
+              <Calendar className="w-4 h-4 mr-2" />
+              Filter by Dates
+            </button>
+          )}
+          
+          {isAdmin && (
+            <button 
+              onClick={() => setShowAddModal(true)}
+              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors flex items-center"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add Gear
+            </button>
+          )}
+        </div>
+
+        {/* Date Filter */}
+        {showDateFilter && (
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+            <div className="flex flex-col sm:flex-row gap-4 items-end">
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  min={startDate}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              <button
+                onClick={clearDateFilter}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors flex items-center"
+              >
+                <X className="w-4 h-4 mr-1" />
+                Clear
+              </button>
+            </div>
+            {startDate && endDate && (
+              <div className="mt-3 text-sm text-blue-600">
+                Showing gear available from {new Date(startDate).toLocaleDateString()} to {new Date(endDate).toLocaleDateString()}
+              </div>
+            )}
+          </div>
         )}
       </div>
 
@@ -256,6 +403,15 @@ const GearCatalog = () => {
             setEditingGear(null);
             fetchGear();
           }}
+        />
+      )}
+
+      {showCheckout && (
+        <CheckoutModal
+          isOpen={showCheckout}
+          onClose={() => setShowCheckout(false)}
+          cartItems={getCartItems()}
+          onSubmit={handleCheckout}
         />
       )}
     </div>
