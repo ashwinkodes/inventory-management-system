@@ -31,7 +31,7 @@ router.get('/', authenticateToken, async (req, res) => {
       include: {
         items: {
           include: {
-            gearItem: {
+            gear: {
               select: {
                 id: true,
                 name: true,
@@ -97,7 +97,7 @@ router.post('/', authenticateToken, async (req, res) => {
         ],
         items: {
           some: {
-            gearItem: {
+            gear: {
               id: { in: gearIds }
             }
           }
@@ -106,7 +106,7 @@ router.post('/', authenticateToken, async (req, res) => {
       include: {
         items: {
           include: {
-            gearItem: true
+            gear: true
           }
         }
       }
@@ -114,8 +114,8 @@ router.post('/', authenticateToken, async (req, res) => {
 
     if (conflictingRequests.length > 0) {
       const conflictingGear = conflictingRequests.flatMap(req => 
-        req.items.filter(item => gearIds.includes(item.gearItem.id))
-          .map(item => item.gearItem.name)
+        req.items.filter(item => gearIds.includes(item.gear.id))
+          .map(item => item.gear.name)
       );
       return res.status(400).json({ 
         error: `Some gear is already reserved for this period: ${conflictingGear.join(', ')}` 
@@ -135,7 +135,7 @@ router.post('/', authenticateToken, async (req, res) => {
         notes: validatedData.notes,
         items: {
           create: validatedData.gearItems.map(item => ({
-            gearItemId: item.gearId,
+            gearId: item.gearId,
             quantity: item.quantity
           }))
         }
@@ -143,7 +143,7 @@ router.post('/', authenticateToken, async (req, res) => {
       include: {
         items: {
           include: {
-            gearItem: {
+            gear: {
               select: {
                 id: true,
                 name: true,
@@ -194,7 +194,7 @@ router.get('/all', authenticateToken, requireAdmin, async (req, res) => {
         },
         items: {
           include: {
-            gearItem: {
+            gear: {
               select: {
                 id: true,
                 name: true,
@@ -233,7 +233,7 @@ router.put('/:id/status', authenticateToken, requireAdmin, async (req, res) => {
       include: {
         items: {
           include: {
-            gearItem: true
+            gear: true
           }
         }
       }
@@ -261,7 +261,7 @@ router.put('/:id/status', authenticateToken, requireAdmin, async (req, res) => {
         },
         items: {
           include: {
-            gearItem: true
+            gear: true
           }
         }
       }
@@ -319,7 +319,7 @@ router.put('/:id/items', authenticateToken, requireAdmin, async (req, res) => {
       data: {
         items: {
           create: items.map((item: any) => ({
-            gearItemId: item.gearId,
+            gearId: item.gearId,
             quantity: item.quantity
           }))
         }
@@ -333,7 +333,7 @@ router.put('/:id/items', authenticateToken, requireAdmin, async (req, res) => {
         },
         items: {
           include: {
-            gearItem: {
+            gear: {
               select: {
                 id: true,
                 name: true,

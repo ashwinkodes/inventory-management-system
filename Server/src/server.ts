@@ -20,7 +20,14 @@ const port = process.env.PORT || 3001;
 const prisma = new PrismaClient();
 
 // Middleware
-app.use(helmet());
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+            'img-src': ["'self'", "data:", "http://localhost:3001", "https://localhost:3001"],
+        },
+    },
+}));
 app.use(cors({
     origin: process.env.NODE_ENV === 'production'
         ? process.env.FRONTEND_URL
@@ -40,8 +47,12 @@ app.use(cookieParser());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Serve uploaded files
-app.use('/uploads', express.static('uploads'));
+// Serve uploaded files with CORS headers
+app.use('/uploads', (req, res, next) => {
+    res.header('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+    next();
+}, express.static('uploads'));
 
 // Routes
 app.use('/api/auth', authRoutes);
