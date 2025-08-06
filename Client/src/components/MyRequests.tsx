@@ -13,16 +13,17 @@ interface GearItem {
 interface RequestItem {
   id: string;
   quantity: number;
-  gearItem: GearItem;
+  gear: GearItem;
 }
 
 interface Request {
   id: string;
   startDate: string;
   endDate: string;
-  tripName: string;
-  purpose: string;
-  experience: string;
+  tripName?: string;
+  intentionsCode?: string;
+  purpose?: string;
+  experience?: string;
   status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'CHECKED_OUT' | 'RETURNED' | 'CANCELLED';
   createdAt: string;
   items: RequestItem[];
@@ -100,7 +101,7 @@ const MyRequests = () => {
             <div key={request.id} className="bg-white rounded-lg shadow-md p-6">
               <div className="flex items-start justify-between mb-4">
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900">{request.tripName}</h3>
+                  <h3 className="text-lg font-semibold text-gray-900">{request.tripName || 'Gear Request'}</h3>
                   <div className="flex items-center mt-1 text-sm text-gray-600">
                     <Calendar className="w-4 h-4 mr-1" />
                     {new Date(request.startDate).toLocaleDateString()} - {new Date(request.endDate).toLocaleDateString()}
@@ -131,18 +132,18 @@ const MyRequests = () => {
                   {request.items.map((item) => (
                     <div key={item.id} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
                       <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
-                        {item.gearItem.imageUrl ? (
-                          <img src={getImageUrl(item.gearItem.imageUrl)} alt={item.gearItem.name} className="w-full h-full object-cover rounded-lg" />
+                        {item.gear.imageUrl ? (
+                          <img src={getImageUrl(item.gear.imageUrl)} alt={item.gear.name} className="w-full h-full object-cover rounded-lg" />
                         ) : (
                           <Package className="w-6 h-6 text-gray-400" />
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">{item.gearItem.name}</p>
-                        {item.gearItem.brand && (
-                          <p className="text-xs text-gray-600">{item.gearItem.brand}</p>
+                        <p className="text-sm font-medium text-gray-900 truncate">{item.gear.name}</p>
+                        {item.gear.brand && (
+                          <p className="text-xs text-gray-600">{item.gear.brand}</p>
                         )}
-                        <p className="text-xs text-gray-500">{formatCategory(item.gearItem.category)}</p>
+                        <p className="text-xs text-gray-500">{formatCategory(item.gear.category)}</p>
                         {item.quantity > 1 && (
                           <p className="text-xs text-blue-600">Qty: {item.quantity}</p>
                         )}

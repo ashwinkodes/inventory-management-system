@@ -12,7 +12,8 @@ import {
   X,
   UserCheck,
   ShoppingCart,
-  ClipboardList
+  ClipboardList,
+  List
 } from 'lucide-react';
 
 interface LayoutProps {
@@ -37,6 +38,7 @@ const Layout = ({ children, currentView, setCurrentView }: LayoutProps) => {
     { id: 'requests', name: 'My Requests', icon: Calendar },
     ...(isAdmin ? [
       { id: 'calendar', name: 'Rental Calendar', icon: Calendar },
+      { id: 'rental-list', name: 'Rental List', icon: List },
       { id: 'admin', name: 'Admin Panel', icon: Settings },
       { id: 'admin-requests', name: 'Manage Requests', icon: ClipboardList },
       { id: 'users', name: 'User Management', icon: UsersIcon },

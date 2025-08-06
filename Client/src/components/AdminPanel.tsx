@@ -14,13 +14,18 @@ const AdminPanel = () => {
 
   const fetchStats = async () => {
     try {
-      const gearResponse = await api.get('/gear');
+      const [gearResponse, requestsResponse] = await Promise.all([
+        api.get('/gear'),
+        api.get('/requests/all')
+      ]);
+      
       const gear = gearResponse.data;
+      const requests = requestsResponse.data;
       
       setStats({
         totalGear: gear.length,
         availableGear: gear.filter((item: any) => item.isAvailable).length,
-        pendingRequests: 0 // TODO: Implement requests endpoint
+        pendingRequests: requests.filter((request: any) => request.status === 'PENDING').length
       });
     } catch (error) {
       console.error('Error fetching stats:', error);

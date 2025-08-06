@@ -248,9 +248,9 @@ router.put('/:id/status', authenticateToken, requireAdmin, async (req, res) => {
       where: { id },
       data: {
         status,
-        reviewedAt: new Date(),
-        reviewedBy: req.user!.id,
-        reviewNotes: notes
+        approvedAt: new Date(),
+        approvedBy: req.user!.id,
+        adminNotes: notes
       },
       include: {
         user: {

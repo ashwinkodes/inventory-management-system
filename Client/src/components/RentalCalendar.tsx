@@ -25,43 +25,37 @@ const RentalCalendar = () => {
 
   const fetchRentals = async () => {
     try {
-      // For now, we'll create mock data since the requests endpoint is not fully implemented
-      // In a real implementation, this would fetch from /api/requests
-      const mockRentals: RentalEvent[] = [
-        {
-          id: '1',
-          gearName: 'North Face Backpack 65L',
-          userName: 'John Smith',
-          userEmail: 'john@example.com',
-          startDate: '2025-08-10',
-          endDate: '2025-08-15',
-          status: 'APPROVED',
-          gearCategory: 'BACKPACK'
-        },
-        {
-          id: '2',
-          gearName: 'MSR Tent 2-Person',
-          userName: 'Sarah Wilson',
-          userEmail: 'sarah@example.com',
-          startDate: '2025-08-12',
-          endDate: '2025-08-18',
-          status: 'APPROVED',
-          gearCategory: 'TENT'
-        },
-        {
-          id: '3',
-          gearName: 'Sleeping Bag -10°C',
-          userName: 'Mike Johnson',
-          userEmail: 'mike@example.com',
-          startDate: '2025-08-06',
-          endDate: '2025-08-09',
-          status: 'CHECKED_OUT',
-          gearCategory: 'SLEEPING_BAG'
+      // Fetch approved and checked out requests from the API
+      const response = await api.get('/requests/all?status=APPROVED');
+      const checkedOutResponse = await api.get('/requests/all?status=CHECKED_OUT');
+      
+      const approvedRequests = response.data;
+      const checkedOutRequests = checkedOutResponse.data;
+      const allRequests = [...approvedRequests, ...checkedOutRequests];
+      
+      // Transform the request data into calendar events
+      const calendarEvents: RentalEvent[] = [];
+      
+      for (const request of allRequests) {
+        for (const item of request.items) {
+          calendarEvents.push({
+            id: `${request.id}-${item.id}`,
+            gearName: item.gear.name,
+            userName: request.user.name,
+            userEmail: request.user.email,
+            startDate: request.startDate.split('T')[0], // Convert to YYYY-MM-DD format
+            endDate: request.endDate.split('T')[0],
+            status: request.status,
+            gearCategory: item.gear.category
+          });
         }
-      ];
-      setRentals(mockRentals);
+      }
+      
+      setRentals(calendarEvents);
     } catch (error) {
       console.error('Error fetching rentals:', error);
+      // Fallback to empty array on error
+      setRentals([]);
     } finally {
       setIsLoading(false);
     }

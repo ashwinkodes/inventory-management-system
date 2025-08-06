@@ -25,7 +25,7 @@ interface GearItem {
 interface RequestItem {
   id: string;
   quantity: number;
-  gearItem: GearItem;
+  gear: GearItem;
 }
 
 interface RequestUser {
@@ -38,15 +38,15 @@ interface Request {
   id: string;
   startDate: string;
   endDate: string;
-  tripName: string;
-  purpose: string;
-  experience: string;
-  intentionsCode: string;
+  tripName?: string;
+  purpose?: string;
+  experience?: string;
+  intentionsCode?: string;
   notes?: string;
   status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'CHECKED_OUT' | 'RETURNED' | 'CANCELLED';
   createdAt: string;
-  reviewedAt?: string;
-  reviewNotes?: string;
+  approvedAt?: string;
+  adminNotes?: string;
   user: RequestUser;
   items: RequestItem[];
 }
@@ -96,7 +96,7 @@ const AdminRequests = () => {
 
     if (searchTerm) {
       filtered = filtered.filter(request =>
-        request.tripName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        request.tripName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         request.user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         request.user.email.toLowerCase().includes(searchTerm.toLowerCase())
       );
@@ -160,7 +160,7 @@ const AdminRequests = () => {
   const EditGearModal = () => {
     const [editedItems, setEditedItems] = useState<{gearId: string, quantity: number}[]>(
       selectedRequest?.items.map(item => ({
-        gearId: item.gearItem.id,
+        gearId: item.gear.id,
         quantity: item.quantity
       })) || []
     );
@@ -228,7 +228,7 @@ const AdminRequests = () => {
 
           <div className="p-6 space-y-4">
             <p className="text-sm text-gray-600 mb-4">
-              Modify the gear items for <strong>{selectedRequest.tripName}</strong> by {selectedRequest.user.name}
+              Modify the gear items for <strong>{selectedRequest.tripName || 'Gear Request'}</strong> by {selectedRequest.user.name}
             </p>
 
             {editedItems.map((item, index) => (
@@ -291,7 +291,7 @@ const AdminRequests = () => {
   };
 
   const RequestModal = () => {
-    const [reviewNotes, setReviewNotes] = useState(selectedRequest?.reviewNotes || '');
+    const [reviewNotes, setReviewNotes] = useState(selectedRequest?.adminNotes || '');
     
     if (!selectedRequest) return null;
 
@@ -316,7 +316,7 @@ const AdminRequests = () => {
                 <div className="space-y-3">
                   <div>
                     <span className="text-sm font-medium text-gray-700">Trip Name:</span>
-                    <p className="text-gray-900">{selectedRequest.tripName}</p>
+                    <p className="text-gray-900">{selectedRequest.tripName || 'Gear Request'}</p>
                   </div>
                   <div>
                     <span className="text-sm font-medium text-gray-700">Dates:</span>
@@ -335,7 +335,7 @@ const AdminRequests = () => {
                   </div>
                   <div>
                     <span className="text-sm font-medium text-gray-700">Intentions Code:</span>
-                    <p className="text-gray-900">{selectedRequest.intentionsCode}</p>
+                    <p className="text-gray-900">{selectedRequest.intentionsCode || 'N/A'}</p>
                   </div>
                 </div>
               </div>
@@ -383,18 +383,18 @@ const AdminRequests = () => {
                 {selectedRequest.items.map((item) => (
                   <div key={item.id} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
                     <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
-                      {item.gearItem.imageUrl ? (
-                        <img src={getImageUrl(item.gearItem.imageUrl)} alt={item.gearItem.name} className="w-full h-full object-cover rounded-lg" />
+                      {item.gear.imageUrl ? (
+                        <img src={getImageUrl(item.gear.imageUrl)} alt={item.gear.name} className="w-full h-full object-cover rounded-lg" />
                       ) : (
                         <Package className="w-6 h-6 text-gray-400" />
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">{item.gearItem.name}</p>
-                      {item.gearItem.brand && (
-                        <p className="text-xs text-gray-600">{item.gearItem.brand}</p>
+                      <p className="text-sm font-medium text-gray-900 truncate">{item.gear.name}</p>
+                      {item.gear.brand && (
+                        <p className="text-xs text-gray-600">{item.gear.brand}</p>
                       )}
-                      <p className="text-xs text-gray-500">{formatCategory(item.gearItem.category)}</p>
+                      <p className="text-xs text-gray-500">{formatCategory(item.gear.category)}</p>
                       {item.quantity > 1 && (
                         <p className="text-xs text-blue-600">Qty: {item.quantity}</p>
                       )}
@@ -531,7 +531,7 @@ const AdminRequests = () => {
           <div key={request.id} className="bg-white rounded-lg shadow-md p-6">
             <div className="flex items-start justify-between mb-4">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900">{request.tripName}</h3>
+                <h3 className="text-lg font-semibold text-gray-900">{request.tripName || 'Gear Request'}</h3>
                 <div className="flex items-center mt-1 text-sm text-gray-600">
                   <User className="w-4 h-4 mr-1" />
                   {request.user.name} ({request.user.email})
@@ -560,10 +560,10 @@ const AdminRequests = () => {
               </div>
             </div>
 
-            {request.reviewNotes && (
+            {request.adminNotes && (
               <div className="mb-4 p-3 bg-gray-50 rounded-lg">
                 <h4 className="text-sm font-medium text-gray-900 mb-2">Review Notes</h4>
-                <p className="text-sm text-gray-600">{request.reviewNotes}</p>
+                <p className="text-sm text-gray-600">{request.adminNotes}</p>
               </div>
             )}
 

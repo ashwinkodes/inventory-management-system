@@ -8,6 +8,7 @@ import AdminRequests from '../components/AdminRequests';
 import UserManagement from '../components/UserManagement';
 import UserApprovals from '../components/UserApprovals';
 import RentalCalendar from '../components/RentalCalendar';
+import RentalList from '../components/RentalList';
 import Cart from '../components/Cart';
 import api from '../lib/axios';
 
@@ -46,6 +47,8 @@ const Dashboard = () => {
         return isAdmin ? <UserManagement /> : <GearCatalog cart={cart} onUpdateCart={setCart} onNavigateToCart={() => setCurrentView('cart')} />;
       case 'approvals':
         return isAdmin ? <UserApprovals /> : <GearCatalog cart={cart} onUpdateCart={setCart} onNavigateToCart={() => setCurrentView('cart')} />;
+      case 'rental-list':
+        return isAdmin ? <RentalList /> : <GearCatalog cart={cart} onUpdateCart={setCart} onNavigateToCart={() => setCurrentView('cart')} />;
       default:
         return <GearCatalog cart={cart} onUpdateCart={setCart} onNavigateToCart={() => setCurrentView('cart')} />;
     }
