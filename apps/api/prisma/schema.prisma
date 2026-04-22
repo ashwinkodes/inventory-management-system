@@ -1,0 +1,162 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Club {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  members       UserClub[]
+  ownedGear     GearItem[]
+  gearVisible   GearVisibility[]
+  requests      Request[]
+
+  @@map("clubs")
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  name         String
+  phone        String?
+  role         String    @default("MEMBER") // ADMIN or MEMBER
+  isApproved   Boolean   @default(false)
+  approvedBy   String?
+  approvedAt   DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  clubs          UserClub[]
+  requests       Request[]
+  sessions       Session[]
+  passwordResets PasswordReset[]
+
+  @@map("users")
+}
+
+model UserClub {
+  userId String
+  clubId String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  club Club @relation(fields: [clubId], references: [id], onDelete: Cascade)
+
+  @@id([userId, clubId])
+  @@map("user_clubs")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model GearItem {
+  id            String    @id @default(cuid())
+  name          String
+  brand         String?
+  model         String?
+  category      String
+  description   String?
+  condition     String    @default("GOOD")
+  size          String?
+  weight        String?
+  imageUrl      String?
+  purchaseDate  DateTime?
+  purchasePrice Float?
+  ownerClubId   String
+  isActive      Boolean   @default(true)
+  notes         String?
+  quantity      Int       @default(1)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  ownerClub     Club             @relation(fields: [ownerClubId], references: [id])
+  visibleTo     GearVisibility[]
+  requestItems  RequestItem[]
+
+  @@map("gear_items")
+}
+
+model GearVisibility {
+  gearId String
+  clubId String
+
+  gear GearItem @relation(fields: [gearId], references: [id], onDelete: Cascade)
+  club Club     @relation(fields: [clubId], references: [id], onDelete: Cascade)
+
+  @@id([gearId, clubId])
+  @@map("gear_visibility")
+}
+
+model Request {
+  id         String    @id @default(cuid())
+  userId     String
+  clubId     String
+  status     String    @default("PENDING")
+  startDate  DateTime
+  endDate    DateTime
+  tripName   String?
+  purpose    String?
+  notes      String?
+  adminNotes String?
+  reviewedBy String?
+  reviewedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  user  User          @relation(fields: [userId], references: [id])
+  club  Club          @relation(fields: [clubId], references: [id])
+  items RequestItem[]
+
+  @@map("requests")
+}
+
+model RequestItem {
+  id              String    @id @default(cuid())
+  requestId       String
+  gearId          String
+  quantity        Int       @default(1)
+  status          String    @default("PENDING")
+  checkedOutAt    DateTime?
+  checkedOutBy    String?
+  checkedInAt     DateTime?
+  checkedInBy     String?
+  conditionOnReturn String?
+  damageNotes     String?
+
+  request Request  @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  gear    GearItem @relation(fields: [gearId], references: [id])
+
+  @@unique([requestId, gearId])
+  @@map("request_items")
+}
+
+model PasswordReset {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("password_resets")
+}

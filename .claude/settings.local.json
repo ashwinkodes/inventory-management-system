@@ -4,7 +4,27 @@
       "Bash(npm run dev:*)",
       "Bash(npm install)",
       "Bash(npm run:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(xargs ls *)",
+      "Bash(python3 -c ' *)",
+      "Bash(pnpm install *)",
+      "Bash(pnpm typecheck *)",
+      "Bash(pnpm lint *)",
+      "Bash(pnpm test *)",
+      "Bash(pnpm build *)",
+      "Bash(pnpm db:seed)",
+      "Bash(DATABASE_URL=\"postgresql://test:test@localhost:5432/test\" SESSION_SECRET=\"test-session-secret-long-enough\" timeout 5 tsx src/server.ts)",
+      "Bash(echo \"exit=$?\")",
+      "Bash(timeout 5 pnpm dev)",
+      "Bash(timeout 5 pnpm --filter @gear/api dev)",
+      "Bash(timeout 6 pnpm --filter @gear/api dev)",
+      "Bash(pnpm --filter @gear/api dev)",
+      "Bash(pkill -f \"tsx watch\")",
+      "Bash(pkill -f \"turbo dev\")",
+      "Bash(pkill -f \"vite\")",
+      "Bash(kill 220713 220729)",
+      "Bash(kill -9 220713 220729)",
+      "Bash(docker compose *)"
     ],
     "deny": []
   }

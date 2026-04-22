@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.env
+*.db
+uploads/gear-images/*
+!uploads/gear-images/.gitkeep
+.turbo/
+node_modules
+local/
